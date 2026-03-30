@@ -1,0 +1,10 @@
+[project]
+name = "maps-to-gpx"
+version = "1.0.0"
+description = "Convert Google Maps directions URLs to road-following GPX files."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "python-dotenv>=1.2.2",
+    "requests>=2.33.0",
+]
