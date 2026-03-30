@@ -1,20 +1,3 @@
-#!/usr/bin/env python3
-"""
-maps_to_gpx.py — Convert a Google Maps directions URL to a road-following GPX file.
-
-Usage:
-    python maps_to_gpx.py "<google_maps_url>" [output.gpx] [options]
-
-Requirements:
-    pip install requests python-dotenv
-
-API key is read from a .env file in the current directory:
-    MAPS_API_KEY=your_key_here
-
-Get a key at:
-    https://console.cloud.google.com/apis/library/directions-backend.googleapis.com
-"""
-
 import argparse
 import os
 import re
@@ -32,9 +15,6 @@ try:
     from dotenv import load_dotenv
 except ImportError:
     sys.exit("Missing dependency: pip install requests python-dotenv")
-
-
-# ── Polyline decoder ──────────────────────────────────────────────────────────
 
 def decode_polyline(encoded: str) -> list[tuple[float, float]]:
     """Decode a Google encoded polyline into a list of (lat, lon) tuples."""
@@ -54,9 +34,6 @@ def decode_polyline(encoded: str) -> list[tuple[float, float]]:
                 lat += delta
         coords.append((lat / 1e5, lng / 1e5))
     return coords
-
-
-# ── Google Maps URL parser ────────────────────────────────────────────────────
 
 def parse_maps_url(url: str) -> list[str]:
     """
@@ -89,9 +66,6 @@ def parse_maps_url(url: str) -> list[str]:
         "Could not parse waypoints from URL.\n"
         "Make sure you copy the full URL from Google Maps after getting directions."
     )
-
-
-# ── Directions API call ───────────────────────────────────────────────────────
 
 def get_route(waypoints: list[str], api_key: str, mode: str) -> list[tuple[float, float]]:
     """Call the Directions API and return decoded route coordinates."""
@@ -157,10 +131,7 @@ def build_gpx(coords: list[tuple[float, float]], name: str) -> str:
     ET.indent(root, space="  ")
     return '<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root, encoding="unicode")
 
-
-# ── CLI ───────────────────────────────────────────────────────────────────────
-
-def main():
+if __name__ == "__main__":
     load_dotenv()
     api_key = os.getenv("MAPS_API_KEY")
     if not api_key:
@@ -174,12 +145,15 @@ def main():
         description="Convert a Google Maps URL to a road-following GPX file."
     )
     parser.add_argument("url",    help="Google Maps directions URL")
-    parser.add_argument("output", nargs="?", default="route.gpx", help="Output GPX file (default: route.gpx)")
+    parser.add_argument("output", nargs="?", default="route.gpx", help="Output filename (saved under output/)")
     parser.add_argument("--mode", default="driving",
                         choices=["driving", "walking", "bicycling", "transit"],
                         help="Travel mode (default: driving)")
     parser.add_argument("--name", default="My Route", help="Track name in the GPX file")
     args = parser.parse_args()
+
+    os.makedirs("output", exist_ok=True)
+    out_path = os.path.join("output", args.output)
 
     print("Parsing URL …")
     waypoints = parse_maps_url(args.url)
@@ -189,13 +163,9 @@ def main():
     coords = get_route(waypoints, api_key, args.mode)
     print(f"  Got {len(coords)} track points")
 
-    print(f"Writing {args.output} …")
+    print(f"Writing {out_path} …")
     gpx = build_gpx(coords, args.name)
-    with open(args.output, "w", encoding="utf-8") as f:
+    with open(out_path, "w", encoding="utf-8") as f:
         f.write(gpx)
 
-    print(f"Done! Saved to {args.output}")
-
-
-if __name__ == "__main__":
-    main()
+    print(f"Done! Saved to {out_path}")
